@@ -12,7 +12,19 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-pro = ['110.73.11.111:8123', '110.73.35.108:8123', '61.135.217.7:80']
+# 代理IP池
+pro = ['172.104.60.128',
+    '15.161.145.56',
+    '213.137.240.243',
+    "106.14.63.8",
+    "54.93.222.189",
+    "187.19.207.195",
+    "46.101.218.6",
+    "111.1.36.132",
+    "106.75.236.60",
+    "196.38.150.104",
+    "104.238.195.10",
+    "95.179.158.20"]
 
 url = "https://myip.ms/ajax_table/sites/2/ipID/23.227.38.0/ipIDii/23.227.38.255/sort/6/asc/1"
 
