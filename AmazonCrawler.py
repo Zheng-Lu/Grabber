@@ -12,7 +12,6 @@ headers = {
 
 ### get data ###
 r = requests.get(url)
-
 content = json.loads(r.text)
 
 ### process data ###
@@ -29,16 +28,21 @@ for i in range(len(content['data']['list'])):
     pic.append(content['data']['list'][i]['pic'])
     price.append(content['data']['list'][i]['price'])
     category.append(content['data']['list'][i]['productCategoryName'])
+df.to_csv('C://Users//Lenovo//Desktop//data.csv',index=0,encoding='utf-8-sig')
 
-with open('C://Users//Lenovo//Desktop//data.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(['name', 'pic', 'price', 'category'])
-    for i in range(len(name)):
-        # content['data']['list'][i]['name'].replace(u'\xa0 ', u' ')
-        # content['data']['list'][i]['pic'].replace(u'\xa0 ', u' ')
-        # content['data']['list'][i]['price'].replace(u'\xa0 ', u' ')
-        # content['data']['list'][i]['productCategoryName'].replace(u'\xa0 ', u' ')
-        writer.writerow([name[i], pic[i], price[i], category[i]])
+### 一为utf-8格式 ###
+# for i in range(len(name)):
+#     content['data']['list'][i]['name'].replace(u'\xa0 ', u' ')
+#     content['data']['list'][i]['pic'].replace(u'\xa0 ', u' ')
+#     # content['data']['list'][i]['price'].replace(u'\xa0 ', u' ')
+#     content['data']['list'][i]['productCategoryName'].replace(u'\xa0 ', u' ')
+
+# with open('C://Users//Lenovo//Desktop//data.csv', 'w', newline='') as f:
+#     writer = csv.writer(f)
+#     writer.writerow(['name', 'pic', 'price', 'category'])
+#     for i in range(len(name)):
+#         writer.writerow([name[i].replace(u'\xa0 ', u''), pic[i].replace(u'\xa0 ', u''), price[i], category[i].replace(u'\xa0 ', u'')])
+
 
 req = Request(url, headers=headers)
 # web_byte = urlopen(req).read()
