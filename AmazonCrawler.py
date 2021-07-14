@@ -20,14 +20,14 @@ name = []
 pic = []
 price = []
 category = []
-df = pd.DataFrame(columns=['name', 'pic', 'price', 'category'])
+df = pd.DataFrame(columns=['Name(Mixshop)', 'Pictures(Mixshop)', 'Price(Mixshop)', 'ID(Mixshop)', 'Name(Amazon)','Pictures(Amazon)','Price(Amazon)','URL(Mixshop)'])
 for i in range(len(content['data']['list'])):
     df.loc[i + 1] = [content['data']['list'][i]['name'], content['data']['list'][i]['pic'],
-                     content['data']['list'][i]['price'], content['data']['list'][i]['productCategoryName']]
+                     content['data']['list'][i]['price'], content['data']['list'][i]['id']]
     name.append(content['data']['list'][i]['name'])
     pic.append(content['data']['list'][i]['pic'])
     price.append(content['data']['list'][i]['price'])
-    category.append(content['data']['list'][i]['productCategoryName'])
+    category.append(content['data']['list'][i]['id'])
 df.to_csv('C://Users//Lenovo//Desktop//data.csv',index=0,encoding='utf-8-sig')
 
 ### 一为utf-8格式 ###
