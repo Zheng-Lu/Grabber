@@ -21,23 +21,45 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 
-path = 'D://picSearch'
+path = 'D://picSearch//'
 url = 'https://adm.mixshop.world/distributor/product/list?pageNum=1&pageSize=100'
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/91.0.4472.124 Safari/537.36'}
 
 ### get data ###
-r = requests.get(url)
+r = requests.get(url, headers=headers)
 content = json.loads(r.text)
 
-pic = []
+pics = []
 for i in range(len(content['data']['list'])):
-    pic.append(content['data']['list'][i]['pic'])
+    pics.append(content['data']['list'][i]['pic'])
+
+urls = pd.read_csv('C://Users//Lenovo//Desktop//mixshop_pic.csv') #save the url list as a dataframe
+rows = []
+for index, i in urls.iterrows():
+    rows.append(i[-1])
+
+counter = 0
+
+#print(rows)
+#print(pics)
+
+for i in pics:
+    file_name = 'product' + str(counter) + '.jpg'
+    path_name = path + file_name
+    print(file_name)
+    response = requests.get(i)
+    file = open(file_name, "wb")
+    file.write(response.content)
+    file.close()
+    counter += 1
+#
+# for i in range(5):
+#     print(pic[i])
 
 EXTEND = [".bmp", ".jpg", ".jpeg", ".tif", ".tiff",
           ".jfif", ".png", ".gif", ".iff", ".ilbm"]
-
 
 def is_img(img_path):
     # 根据后缀判断是否为图片
