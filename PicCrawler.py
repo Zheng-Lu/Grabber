@@ -85,7 +85,6 @@ def getfilelist(path, filelist):
                 name = os.path.join(path, img_name)
                 filelist.append(name)
 
-
 def partition(ls, size):
     num_per_list = len(ls) // size
     result = []
