@@ -1,5 +1,5 @@
 import random
-from scrapy import Spider,Request
+from scrapy import Spider, Request
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -23,11 +23,13 @@ import numpy as np
 import sys
 import io
 
-pd.set_option('max_colwidth',100)
+pd.set_option('max_colwidth', 100)
+
+start = time.time()
 
 browser = webdriver.Chrome()
 browser.maximize_window()  # 最大化窗口
-wait = WebDriverWait(browser, 10) # 等待加载10s
+wait = WebDriverWait(browser, 10)  # 等待加载10s
 
 upload_url = "https://adm.mixshop.world/product/add"
 upload_headers = {
@@ -37,9 +39,9 @@ upload_headers = {
 }
 
 AliExpress_headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/91.0.4472.124 Safari/537.36',
-    }
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/91.0.4472.124 Safari/537.36',
+}
 
 # path = r"C:\Users\Lenovo\Desktop\Flash Deals - Shop Cheap Flash Deals from China Flash Deals Suppliers at cryptographic Official Store on Aliexpress.com - (2021_7_16 下午7_53_36).html"
 # html = 'https://cryptographic.aliexpress.com/store/group/Flash-Deals/619765_512731262.html'
@@ -51,6 +53,8 @@ AliExpress_headers = {
 # df = pd.DataFrame(aliExpress)
 
 urls = []
+
+
 # for row in df.iterrows():
 #     row[1].values
 #     urls.append(list(row[1]))
@@ -66,7 +70,15 @@ def getCookies(url):
         c.set(item["name"], item["value"])
     return c
 
-def getProductBySearch(url): #This url is not a specified url of a single product
+def downloadPage(url):
+    html = ''
+    url = ''
+    with open("C://Users//Lenovo//Desktop//html//" + str(id) + '.html', encoding='gb18030', errors='ignore') as f:
+        for line in f.readlines():
+            html += line.strip()
+
+
+def getProductBySearch(url):  # This url is not a specified url of a single product
     s = requests.Session()
     s.cookies.update(getCookies(url))
     r = s.post(url, headers=AliExpress_headers)
@@ -77,20 +89,20 @@ def getProductBySearch(url): #This url is not a specified url of a single produc
     for p in product_url_list:
         product_url.append(p.get('href'))
 
-    desc = soup.findAll('img',attrs={"class": "A3Q1M"})
+    desc = soup.findAll('img', attrs={"class": "A3Q1M"})
     title = []
     cover_url = []
     for x in desc:
         title.append(x.get('alt'))
         cover_url.append(x.get('src'))
 
-    prices = soup.findALL('div',attrs={"class":"_12A8D"})
+    prices = soup.findAll('div', attrs={"class": "_12A8D"})
     price = []
     for p in prices:
         price.append(p.get_text)
 
-    store_name = soup.findALL('a', attrs={"class": "_21sU7"})
-    store=[]
+    store_name = soup.findAll('a', attrs={"class": "_21sU7"})
+    store = []
     for s in store_name:
         store.append(s.get_text())
 
@@ -104,6 +116,7 @@ def getProductBySearch(url): #This url is not a specified url of a single produc
 
     return data
 
+
 def getData(url):
     options = Options()
     options.headless = True
@@ -111,7 +124,8 @@ def getData(url):
     driver = webdriver.Chrome(options=options, executable_path=r'D:\ChromeDriver\chromedriver.exe')
     driver.get(url)
     title = driver.find_element_by_css_selector('.product-title-text')
-    price = driver.find_element_by_xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "product-price-value", " " ))]')
+    price = driver.find_element_by_xpath(
+        '//*[contains(concat( " ", @class, " " ), concat( " ", "product-price-value", " " ))]')
     img_url = driver.find_element_by_xpath('//div/img').get_attribute('src')
     product_data = {
         'title': title.text,
@@ -122,27 +136,32 @@ def getData(url):
     return product_data
 
 
-
 def start_requests(self):
     for url in urls:
         yield Request(url=url, callback=self.parse, meta={'use_selenium': True}, dont_filter=True)
+
 
 def scrapeData(url):
     # Download the page using requests
     r = requests.get(url, headers=AliExpress_headers)
     # create the object that will contain all the info in the url
     soup = BeautifulSoup(r.content, features="lxml")
-    #soup = BeautifulSoup(htmlhandle, 'html.parser')
+    # soup = BeautifulSoup(htmlhandle, 'html.parser')
     data = soup.findAll('span')
-    #title = soup.find(id='price_total').get_text().strip()
-
+    # title = soup.find(id='price_total').get_text().strip()
     return data
 
 
+target_url = 'https://www.aliexpress.com/wholesale?catId=0&initiative_id=AS_20210721193559&SearchText=nvidia+rtx+3090' \
+             '+graphics+card '
+print(getCookies(target_url))
+print(getProductBySearch(target_url))
 
-
-#print(scrapeData(html))
+# print(scrapeData(html))
 
 # r = requests.get(login_page, headers=headers,proxies=proxies)
 # soup = BeautifulSoup(r.content, features="lxml")
 # print(soup.findAll('fm-login-id'))
+
+end = time.time()
+print('Time taken: '+str(round(end-start, 2)) + 's')
