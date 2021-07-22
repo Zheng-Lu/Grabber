@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import urllib
 import urllib.request
+from urllib.request import urlretrieve
 import csv
 import re
 import os
@@ -21,39 +22,50 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-path = 'D://picSearch//'
+pd.set_option('max_colwidth',180)
+pd.set_option('display.max_rows',80)
+
+path = 'C://Users//Lenovo//Desktop//pics//'
 url = 'https://adm.mixshop.world/distributor/product/list?pageNum=1&pageSize=100'
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/91.0.4472.124 Safari/537.36'}
 
-### get data ###
-r = requests.get(url, headers=headers)
-content = json.loads(r.text)
+df = pd.read_csv('C://Users//Lenovo//Desktop//new.csv')  # save the url list as a dataframe
+pics = df['pic']
 
-pics = []
-for i in range(len(content['data']['list'])):
-    pics.append(content['data']['list'][i]['pic'])
+# print(pics)
 
-urls = pd.read_csv('C://Users//Lenovo//Desktop//mixshop_pic.csv')  # save the url list as a dataframe
-rows = []
-for index, i in urls.iterrows():
-    rows.append(i[-1])
+counter = 1
 
-counter = 0
+for pic in pics:
+    print(pic)
 
 # print(rows)
 # print(pics)
 
-for i in pics:
+for pic in pics:
     file_name = 'product' + str(counter) + '.jpg'
     path_name = path + file_name
     print(file_name)
-    response = requests.get(i)
+    response = requests.get(pic, headers=headers)
     file = open(path_name, "wb")
     file.write(response.content)
     file.close()
+    # urlretrieve(pic, os.path.join(path, file_name))
     counter += 1
+
+# for i in range(len(pics)):
+#     print('product' + str(counter) + '.jpg')
+#     # url = 'http://pic.qiushibaike.com/system/avtnew/3239/32395436/thumb/20171013142058.JPEG?imageView2/1/w/90/h/90'
+#     r = requests.request('get', pics[i])  # 获取网页
+#     print(r.status_code)
+#
+#     with open(path + 'product' + str(counter) + '.jpg', 'wb') as f:  # 打开写入到path路径里-二进制文件，返回的句柄名为f
+#         f.write(r.content)  # 往f里写入r对象的二进制文件
+#     f.close()
+#     counter += 1
+
 #
 # for i in range(5):
 #     print(pic[i])

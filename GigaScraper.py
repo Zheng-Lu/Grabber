@@ -1,24 +1,14 @@
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import NoSuchElementException
-from selectorlib import Extractor
-from lxml.html import fromstring
-from urllib.parse import urlencode
-from urllib.parse import urljoin
-import scrapy
-import re
 import requests
-import json
 import time
 import pandas as pd
 from selenium.webdriver.support.wait import WebDriverWait
 from bs4 import BeautifulSoup
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-import numpy as np
-import sys
-import io
+import urllib.parse
+from urllib.parse import quote,unquote
+
+start = time.time()
 
 pd.set_option('max_colwidth',100)
 
@@ -32,57 +22,43 @@ home_page ='https://www.gigab2b.com/index.php?route=common/home'
 #文件路径
 # path1 = r"C:\Users\Lenovo\Desktop\ProductUpload\TOPMAX.xlsx"
 path1 = r"C:\Users\Lenovo\Desktop\Furniture\美国站每周产品推荐TOPMAX.csv"
-path2 = r"C:\Users\Lenovo\Desktop\ProductUpload\U-Style.xlsx"
-path3 = r"C:\Users\Lenovo\Desktop\ProductUpload\Oris Fur..xlsx"
-path4 = r"C:\Users\Lenovo\Desktop\ProductUpload\TREXM.xlsx"
-path5 = r"C:\Users\Lenovo\Desktop\ProductUpload\Go Store.xlsx"
-path6 = r"C:\Users\Lenovo\Desktop\ProductUpload\WM Store.xlsx"
+path2 = r"C:\Users\Lenovo\Desktop\Furniture\美国站每周产品推荐U-Style.csv"
+path3 = r"C:\Users\Lenovo\Desktop\Furniture\美国站每周产品推荐Oris Fur..csv"
+path4 = r"C:\Users\Lenovo\Desktop\Furniture\美国站每周产品推荐TREXM.csv"
+path5 = r"C:\Users\Lenovo\Desktop\Furniture\美国站每周产品推荐GO Store.csv"
+path6 = r"C:\Users\Lenovo\Desktop\Furniture\美国站每周产品推荐WM Store.csv"
 
-df1 = pd.read_csv(path1,encoding='gbk')
-# df2 = pd.read_excel(path2)
-# df3 = pd.read_excel(path3)
-# df4 = pd.read_excel(path4)
-# df5 = pd.read_excel(path5)
-# df6 = pd.read_excel(path6)
+#df1 = pd.read_csv(path1,encoding='gbk')
+# df2 = pd.read_csv(path2)
+# df3 = pd.read_csv(path3, encoding='gbk')
+# df4 = pd.read_csv(path4, encoding='gbk')
+df5 = pd.read_csv(path5)
+# df6 = pd.read_csv(path6)
 
-data1 = pd.DataFrame(df1)
+#data1 = pd.DataFrame(df1)
 # data2 = pd.DataFrame(df2)
 # data3 = pd.DataFrame(df3)
 # data4 = pd.DataFrame(df4)
-# data5 = pd.DataFrame(df5)
+data5 = pd.DataFrame(df5)
 # data6 = pd.DataFrame(df6)
 
-urls1 = data1['产品链接']
-# urls2 = data2['url']
-# urls3 = data3['url']
-# urls4 = data4['url']
-# urls5 = data5['url']
-# urls6 = data6['url']
+# urls1 = data1['产品链接']
+# urls2 = data2['产品链接']
+# urls3 = data3['产品链接']
+# urls4 = data4['产品链接']
+urls5 = data5['产品链接']
+# urls6 = data6['产品链接']
 
-#print(urls1)
-# print(urls2)
-# print(urls3)
-# print(urls4)
-# print(urls5.fillna(value=str(0)))
-#print(urls6)
+
 
 #模拟登录
 def login():
     browser.get('https://www.gigab2b.com/index.php?route=account/login')
-    # input = wait.until(EC.presence_of_element_located(
-    #     (By.XPATH, '//input[@id="input-email"]')))
     browser.find_element_by_xpath('//*[(@id = "input-email")]').send_keys('demo@buyer.com')
     browser.find_element_by_xpath('//*[(@id = "input-password")]').send_keys('0325#Test@BB',Keys.ENTER)
-    # input = wait.until(EC.presence_of_element_located(
-    #     (By.XPATH, '//input[@id="input-password"]')))
-    # input.send_keys('0325#Test@BB')
-    # submit = wait.until(EC.element_to_be_clickable(
-    #     (By.XPATH, '//input[3]')))
-    # submit.click()  # 点击登录按钮
     time.sleep(10)  # 等待cookie加载完成
     cookies = browser.get_cookies()
     return cookies
-
 
 headers = {
         'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,'
@@ -96,7 +72,6 @@ headers = {
                       'Chrome/91.0.4472.124 Safari/537.36',
     }
 
-
 cookies = login()
 s = requests.Session()
 c = requests.cookies.RequestsCookieJar()
@@ -105,33 +80,18 @@ for item in cookies:
 print(c)
 s.cookies.update(c)
 
-
-# TotalCost1=[]
-# TotalCost2=[]
-# TotalCost3=[]
-# TotalCost4=[]
-# TotalCost5=[]
-# TotalCost6=[]
-# Price1=[]
-# Price2=[]
-# Price3=[]
-# Price4=[]
-# Price5=[]
-# Price6=[]
-
-Desc1=[]
-Desc2=[]
-Desc3=[]
-Desc4=[]
-Desc5=[]
-Desc6=[]
+createVar = locals()
+maVarList = []
+for i in range(4):
+    createVar['DetailPic'+str(i)] = []
+    maVarList.append(createVar['DetailPic'+str(i)])
 
 Pic=[]
 DetailPic1=[]
 DetailPic2=[]
 DetailPic3=[]
 DetailPic4=[]
-
+DetailPic5=[]
 
 def scrapeTotalCost(url):
     # Download the page using requests
@@ -161,7 +121,6 @@ def scrapeDesc(url):
     Desc = soup.select('p[style="font-size\:\ 20px\;margin\:\ 0\;overflow\:\ hidden\;text-overflow\:\ ellipsis\;"]')
     for i in Desc:
         desc=i.get_text()
-    # price = soup.find(id='priceTypeDefault').get_text()
     return desc
 
 def scrapeImgURL(url):
@@ -169,29 +128,22 @@ def scrapeImgURL(url):
     r = s.post(url, headers=headers)
     # create the object that will contain all the info in the url
     soup = BeautifulSoup(r.content, features="lxml")
-    # Desc = soup.select('img[title="font-size\:\ 20px\;margin\:\ 0\;overflow\:\ hidden\;text-overflow\:\ ellipsis\;"]')
-    # Img = soup.select('img[title="'+str(scrapeDesc(url))+'"]')
     Img = soup.find_all('img')
-    # for i in Img:
-    #     img = i.get_text
-    # price = soup.find(id='priceTypeDefault').get_text()
-    pic = Img[8].get('src') # pic:8  detailpics:10 11 12 13
-    detailPic1 = Img[10].get('src')
-    detailPic2 = Img[11].get('src')
-    detailPic3 = Img[12].get('src')
-    detailPic4 = Img[13].get('src')
-    return pic, detailPic1, detailPic2, detailPic3, detailPic4
+    pics=[]
+    for i in range(8,14):
+        pics.append(Img[i].get('src'))
+    return pics
 
 
 
-for url in urls1:
+for url in urls5:
     print(scrapeImgURL(url))
     Pic.append(scrapeImgURL(url)[0])
     DetailPic1.append(scrapeImgURL(url)[1])
     DetailPic2.append(scrapeImgURL(url)[2])
     DetailPic3.append(scrapeImgURL(url)[3])
     DetailPic4.append(scrapeImgURL(url)[4])
-
+    DetailPic5.append(scrapeImgURL(url)[4])
 #     Desc1.append(scrapeDesc(url))
 #    TotalCost1.append(scrapeTotalCost(url))
 #    Price1.append(scrapePrice(url))
@@ -231,12 +183,13 @@ for url in urls1:
 # df1["单价"]=Price1
 # df1["总花费"]=TotalCost1
 # df1['desc']=Desc1
-df1['pic']=Pic
-df1['detailPic1']=DetailPic1
-df1['detailPic2']=DetailPic2
-df1['detailPic3']=DetailPic3
-df1['detailPic4']=DetailPic4
-df1.to_excel(r"C:\Users\Lenovo\Desktop\TOPMAX.xlsx", index=False)
+df5['pic']=Pic
+df5['detailPic1']=DetailPic1
+df5['detailPic2']=DetailPic2
+df5['detailPic3']=DetailPic3
+df5['detailPic4']=DetailPic4
+df5['detailPic5']=DetailPic5
+df5.to_excel(r"C:\Users\Lenovo\Desktop\Go Store.xlsx", index=False)
 
 # df2["单价"]=Price2
 # df2["总花费"]=TotalCost2
@@ -264,7 +217,8 @@ df1.to_excel(r"C:\Users\Lenovo\Desktop\TOPMAX.xlsx", index=False)
 # df6['desc']=Desc6
 # df6.to_csv(r"C:\Users\Lenovo\Desktop\WM Store.xlsx",  index=False)
 
-
+end = time.time()
+print(end-start)
 
 
 
