@@ -1,27 +1,31 @@
-from scrapy import Spider, Request
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import NoSuchElementException
-from selectorlib import Extractor
-from lxml.html import fromstring
-from urllib.parse import urlencode
-from urllib.parse import urljoin
-import scrapy
-import re
-import requests
 import json
+
+import requests
 import time
 import pandas as pd
-from selenium.webdriver.support.wait import WebDriverWait
 from bs4 import BeautifulSoup
 import random
 from itertools import cycle
-from collections import OrderedDict
+
+from selectorlib import Extractor
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import NoSuchElementException
 
 pd.set_option('max_colwidth', 100)
 
 start = time.time()
+
+user_agent_list = [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
+]
+
+# Pick a random user agent
+user_agent = random.choice(user_agent_list)
 
 headers = {
     'authority': 'www.amazon.com',
@@ -32,7 +36,7 @@ headers = {
     'sec-ch-ua': '^\\^',
     'sec-ch-ua-mobile': '?0',
     'upgrade-insecure-requests': '1',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'user-agent': user_agent,
     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
     'sec-fetch-site': 'cross-site',
     'sec-fetch-mode': 'navigate',
@@ -45,63 +49,86 @@ headers = {
 
 # response = requests.get('https://www.amazon.com/', headers=headers)
 
-f = open(r"C:\Users\Lenovo\Desktop\ProxiesPool\ProxiesPool(SOCKS4).txt",'r', encoding='utf-8')
+f = open(r"C:\Users\Lenovo\Desktop\ProxiesPool\ProxiesPool(socks4).txt",'r', encoding='utf-8')
 proxies = f.read().split("\n")
 
 for i in range(len(proxies)):
     proxies[i] = 'socks4://' + proxies[i]
+    # print(proxies[i])
 
 proxies_pool = cycle(proxies)
-print(proxies_pool)
+proxy = next(proxies_pool) # Get a proxy from the pool
 
 """
 Proxies Testing 
 """
 
-url = 'https://httpbin.org/ip'
-for i in range(len(proxies)):
-    # Get a proxy from the pool
-    proxy = next(proxies_pool)
-    print("Request #%d" % i)
+# url = 'https://httpbin.org/ip'
+# for i in range(len(proxies)):
+#
+#     print("Request #%d" % i)
+#     try:
+#         response = requests.get(url, proxies={"http": proxy, "https": proxy})
+#         print(response.json())
+#     except:
+#         print("Skipping. Connnection error")
+
+"""
+Headers Testing 
+"""
+
+# url = 'https://httpbin.org/headers'
+# for i in range(0, 4):
+#
+#     # Make the request
+#     response = requests.get(url, headers=headers)
+#     print("Request #%d\nUser-Agent Sent:%s\n\nHeaders Recevied by HTTPBin:" % (i, user_agent))
+#     print(response.json())
+#     print("-------------------")
+
+def search_amazon(item):
+    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver.maximize_window()
+    driver.get('https://www.amazon.com')
+    driver.find_element_by_id('twotabsearchtextbox').send_keys(item)
+    driver.find_element_by_id("nav-search-submit-text").click()
+
+    driver.implicitly_wait(5)
+
     try:
-        response = requests.get(url, proxies={"http": proxy, "https": proxy})
-        print(response.json())
+        num_page = driver.find_element_by_xpath('//*[@class="a-pagination"]/li[6]')
+    except NoSuchElementException:
+        num_page = driver.find_element_by_class_name('a-last').click()
+
+    driver.implicitly_wait(3)
+
+    url_list = []
+
+    for i in range(int(num_page.text)):
+        page_ = i + 1
+        url_list.append(driver.current_url)
+        driver.implicitly_wait(4)
+        driver.find_element_by_class_name('a-last').click()
+        print("Page " + str(page_) + " grabbed")
+
+    driver.quit()
+
+    with open('search_results_urls.txt', 'w') as filehandle:
+        for result_page in url_list:
+            filehandle.write(f'{result_page}\n')
+
+    print("------------------------DONE------------------------")
+
+def getProducts(url):
+    s = requests.Session()
+    time.sleep(3)
+    try:
+        r = s.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
     except:
         print("Skipping. Connnection error")
 
-user_agent_list = [
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
-]
+    soup = BeautifulSoup(r.content, features="lxml")
 
-url = 'https://httpbin.org/headers'
-for i in range(0, 4):
-    # Pick a random user agent
-    user_agent = random.choice(user_agent_list)
-    # Set the headers
-    headers = {'User-Agent': user_agent}
-    # Make the request
-    response = requests.get(url, headers=headers)
-    print("Request #%d\nUser-Agent Sent:%s\n\nHeaders Recevied by HTTPBin:" % (i, user_agent))
-    print(response.json())
-    print("-------------------")
-
-header = {
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                  'Chrome/91.0.4472.124 Safari/537.36',
-}
-
-
-def getSoup(url):
-    r = requests.get('http://localhost:8050/render.html', params={'url': url, 'wait': 2})
-    soup = BeautifulSoup(r.text, 'html.parser')
-    return soup
-
-
-def getProducts(soup):
     # retrieving the list of product titles
     try:
         titles = soup.findAll('span', attrs={'class': 'a-size-medium a-color-base a-text-normal'})
@@ -135,7 +162,7 @@ def getProducts(soup):
         urls = soup.findAll('a', attrs={'class': 'a-link-normal a-text-normal'})
         url = []
         for u in urls:
-            url.append(u.get('href'))
+            url.append('https://www.amazon.com'+u.get('href'))
     except AttributeError:
         url.append('N/A')
 
@@ -147,6 +174,42 @@ def getProducts(soup):
     }
 
     return data
+
+# Create an Extractor by reading from the YAML file
+e = Extractor.from_yaml_file('selector.yml')
+
+def download_product(url):
+    print(f"Downloading {url}")
+    response = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
+    if response.status_code > 500:
+        if "To discuss automated access to Amazon data please contact" in response.text:
+            print(f"Page {url} was blocked by Amazon. Please try using better proxies\n")
+        else:
+            print(f"Page {url} must have been blocked by Amazon as the status code was {response.status_code}" )
+        return None
+
+    # content = response.content
+    # with open(r'C:\Users\Lenovo\Desktop\html\Amazon.html', 'wb') as f:
+    #     f.write(content)
+
+    return e.extract(response.text)
+
+def find_captcha(url):
+    response = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
+
+
+
+# URL = 'https://www.amazon.com/s?k=100+Watt+Portable+Solar+Panels%2C+Foldable+Solar+Panel+Charger%2C+Compatible+with+Solar+Power+Stations%2FPhones%2Flaptops%2FTablet+Computers%2C+Suitable+for+Family+Camping%2FTravel%2FHiking+Various+Outdoor+Activities&ref=nb_sb_noss'
+# df = pd.DataFrame.from_dict(getProducts(URL))
+# print(df)
+# print(getProducts(URL))
+# search_amazon('100 Watt Portable Solar Panels, Foldable Solar Panel Charger, Compatible with Solar Power Stations/Phones/laptops/Tablet Computers, Suitable for Family Camping/Travel/Hiking Various Outdoor Activities')
+
+with open("search_results_urls.txt",'r') as urllist:
+    for url in urllist.read().splitlines():
+        # data = download_product(url)
+        # print(data)
+        print(getProducts(url))
 
 
 end = time.time()
