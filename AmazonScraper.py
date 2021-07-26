@@ -6,7 +6,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import random
 from itertools import cycle
-
+from amazoncaptcha import AmazonCaptcha
 from selectorlib import Extractor
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -175,7 +175,6 @@ def getProducts(url):
 
     return data
 
-# Create an Extractor by reading from the YAML file
 e = Extractor.from_yaml_file('selector.yml')
 
 def download_product(url):
@@ -188,16 +187,24 @@ def download_product(url):
             print(f"Page {url} must have been blocked by Amazon as the status code was {response.status_code}" )
         return None
 
-    # content = response.content
-    # with open(r'C:\Users\Lenovo\Desktop\html\Amazon.html', 'wb') as f:
-    #     f.write(content)
-
     return e.extract(response.text)
 
-def find_captcha(url):
+def pass_captcha(url):
     response = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
-
-
+    if response.status_code == 200:
+        if "Type the characters you see in this image:" in response.text:
+            driver = webdriver.Chrome()
+            driver.maximize_window()
+            driver.get(url)
+            link = driver.find_element_by_tag_name('img').get_attribute('src')
+            print(link)
+            captcha = AmazonCaptcha.fromlink(link)
+            solution = captcha.solve()
+            print(solution)
+            driver.find_element_by_css_selector('input.a-span12').send_keys(solution)
+            driver.find_element_by_css_selector("button.a-button-text").click()
+    else:
+        print("Page Not Found")
 
 # URL = 'https://www.amazon.com/s?k=100+Watt+Portable+Solar+Panels%2C+Foldable+Solar+Panel+Charger%2C+Compatible+with+Solar+Power+Stations%2FPhones%2Flaptops%2FTablet+Computers%2C+Suitable+for+Family+Camping%2FTravel%2FHiking+Various+Outdoor+Activities&ref=nb_sb_noss'
 # df = pd.DataFrame.from_dict(getProducts(URL))
@@ -205,11 +212,13 @@ def find_captcha(url):
 # print(getProducts(URL))
 # search_amazon('100 Watt Portable Solar Panels, Foldable Solar Panel Charger, Compatible with Solar Power Stations/Phones/laptops/Tablet Computers, Suitable for Family Camping/Travel/Hiking Various Outdoor Activities')
 
-with open("search_results_urls.txt",'r') as urllist:
-    for url in urllist.read().splitlines():
-        # data = download_product(url)
-        # print(data)
-        print(getProducts(url))
+# with open("search_results_urls.txt",'r') as urllist:
+#     for url in urllist.read().splitlines():
+#         # data = download_product(url)
+#         # print(data)
+#         print(getProducts(url))
+
+pass_captcha('https://www.amazon.com/errors/validateCaptcha')
 
 
 end = time.time()
