@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from multiprocessing import Pool, cpu_count
 
 from selenium import webdriver
@@ -13,15 +14,31 @@ path = r"C:\Users\Lenovo\Desktop\pics"
 def run():
     num_process = cpu_count()
     pool = Pool(num_process)
-    result = partition(imgList(path), num_process)
+    result = partition(img_file_list(path), num_process)
 
 
-def imgList(path):
+def img_file_list(path):
     file_list = []
     file = os.listdir(path)
     for img in file:
         file_list.append(img)
     return file_list
+
+
+def img_url_list(path):
+    if path.split('.')[1] == 'xlsx':
+        url_list = pd.read_excel(path)['img url'].tolist()
+        return url_list
+
+    elif path.split('.')[1] == 'csv':
+        url_list = pd.read_csv(path)['img url'].tolist()
+        return url_list
+
+    elif path.split('.')[1] == 'txt':
+        with open(path) as f:
+            url_list = f.readlines()
+        url_list = [x.strip() for x in url_list]
+        return url_list
 
 
 def partition(ls, size):
@@ -45,25 +62,37 @@ class GooglePicSearcher:
         self.option = webdriver.ChromeOptions()
         self.driver = webdriver.Chrome(options=self.option)
 
-    def upload_img(self):
+    def upload_img(self, file):
         self.driver.get("https://images.google.com")
 
-        # 等待相机按钮出现
+        # Wait until the camera show up
         condition_1 = EC.visibility_of_element_located(
-            (By.CLASS_NAME, "LM8x9c"))
-        WebDriverWait(self.driver, timeout=20,
-                      poll_frequency=0.5).until(condition_1)
-        # 相机按钮出现后点击
-        image_button = self.driver.find_element_by_class_name("LM8x9c")
+            (By.CLASS_NAME, "ZaFQO"))
+        WebDriverWait(self.driver, timeout=20, poll_frequency=0.5).until(condition_1)
+
+        # Click the camera icon
+        image_button = self.driver.find_element_by_class_name("ZaFQO")
         image_button.send_keys(Keys.ENTER)
 
-        # 等待出现上传图片字样
+        # Wait until the option of Upload Photo show up
         condition_2 = EC.visibility_of_element_located(
-            (By.ID, "dRSWfb"))
-        WebDriverWait(self.driver, timeout=20, poll_frequency=0.5).until(
-            condition_2)
+            (By.CLASS_NAME, "IyNJid H4qWMc aXIg1b"))
+        WebDriverWait(self.driver, timeout=20, poll_frequency=0.5).until(condition_2)
 
-        # 点击上传图片
-        upload = self.driver.find_element_by_xpath('//*[@id="dRSWfb"]/div/a')
+        # Click Upload Photo
+        upload = self.driver.find_element_by_xpath('//*[(@class = "IyNJid H4qWMc aXIg1b")]')
         upload.send_keys(Keys.ENTER)
 
+        # Upload file from given path
+        condition_3 = EC.visibility_of_element_located(
+            (By.ID, 'awyMjb'))
+        WebDriverWait(self.driver, timeout=10, poll_frequency=0.5).until(condition_3)
+        input_ = self.driver.find_element_by_id('awyMjb')
+        input_.send_keys(file)
+
+        return self.driver.page_source
+
+
+searcher = GooglePicSearcher()
+
+# print(searcher.upload_img(r"C:\Users\Lenovo\Desktop\pics\326992_1.jpg"))
