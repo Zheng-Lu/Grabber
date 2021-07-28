@@ -8,10 +8,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-path = r"C:\Users\Lenovo\Desktop\pics"
-
 
 def run():
+    path = r"C:\Users\Lenovo\Desktop\pics"
     num_process = cpu_count()
     pool = Pool(num_process)
     result = partition(img_file_list(path), num_process)
@@ -61,9 +60,7 @@ class GooglePicSearcher:
         }
         self.option = webdriver.ChromeOptions()
         self.driver = webdriver.Chrome(options=self.option)
-
-    def upload_img(self, file):
-        self.driver.get("https://images.google.com")
+        self.driver.get("https://www.google.com/imghp?hl=en")
 
         # Wait until the camera show up
         condition_1 = EC.visibility_of_element_located(
@@ -74,25 +71,34 @@ class GooglePicSearcher:
         image_button = self.driver.find_element_by_class_name("ZaFQO")
         image_button.send_keys(Keys.ENTER)
 
-        # Wait until the option of Upload Photo show up
-        condition_2 = EC.visibility_of_element_located(
-            (By.CLASS_NAME, "IyNJid H4qWMc aXIg1b"))
-        WebDriverWait(self.driver, timeout=20, poll_frequency=0.5).until(condition_2)
+    def upload_img_file(self, file):
+        # Choose upload image
+        upload_img_option = self.driver.find_element_by_css_selector("a.iOGqzf.H4qWMc.aXIg1b[href='about\:invalid\#zClosurez'][onclick='google\.qb\.ti\(true\)\;return\ false']")
+        upload_img_option.click()
 
-        # Click Upload Photo
-        upload = self.driver.find_element_by_xpath('//*[(@class = "IyNJid H4qWMc aXIg1b")]')
-        upload.send_keys(Keys.ENTER)
-
-        # Upload file from given path
+        # Upload file from given file path
         condition_3 = EC.visibility_of_element_located(
             (By.ID, 'awyMjb'))
         WebDriverWait(self.driver, timeout=10, poll_frequency=0.5).until(condition_3)
-        input_ = self.driver.find_element_by_id('awyMjb')
+        input_ = self.driver.find_element_by_css_selector("input#awyMjb")
         input_.send_keys(file)
+
+        return self.driver.page_source
+
+    def upload_img_url(self, url):
+        # Choose Paste image URL
+        paste_img_option = self.driver.find_element_by_css_selector("span#cjyo4e.IyNJid.H4qWMc.aXIg1b")
+        paste_img_option.click()
+
+        input_ = self.driver.find_element_by_xpath('//*[(@id = "Ycyxxc")]')
+        input_.send_keys(url)
+
+        search_button = self.driver.find_element_by_id('RZJ9Ub')
+        search_button.click()
 
         return self.driver.page_source
 
 
 searcher = GooglePicSearcher()
 
-# print(searcher.upload_img(r"C:\Users\Lenovo\Desktop\pics\326992_1.jpg"))
+print(searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\326992_1.jpg"))
