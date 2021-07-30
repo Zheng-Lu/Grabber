@@ -1,5 +1,7 @@
 import os
+import re
 import pandas as pd
+from bs4 import BeautifulSoup
 from multiprocessing import Pool, cpu_count
 
 from selenium import webdriver
@@ -73,7 +75,8 @@ class GooglePicSearcher:
 
     def upload_img_file(self, file):
         # Choose upload image
-        upload_img_option = self.driver.find_element_by_css_selector("a.iOGqzf.H4qWMc.aXIg1b[href='about\:invalid\#zClosurez'][onclick='google\.qb\.ti\(true\)\;return\ false']")
+        upload_img_option = self.driver.find_element_by_css_selector(
+            "a.iOGqzf.H4qWMc.aXIg1b[href='about\:invalid\#zClosurez'][onclick='google\.qb\.ti\(true\)\;return\ false']")
         upload_img_option.click()
 
         # Upload file from given file path
@@ -98,7 +101,26 @@ class GooglePicSearcher:
 
         return self.driver.page_source
 
+    # regex of target url :
+    def scrape_target(self, content):
+        urls = []
+        result = []
+        targets = re.findall(
+            '(?:https?://)?(?:[a-zA-Z0-9\-]+\.)?(?:amazon|amzn){1}\.(?P<tld>[a-zA-Z\.]{2,})\/(gp/(?:product|offer-listing|customer-media/product-gallery)/|exec/obidos/tg/detail/-/|o/ASIN/|dp/|(?:[A-Za-z0-9\-]+)/dp/)?(?P<ASIN>[0-9A-Za-z]{10})',
+            content)
+
+        # Reform the targets into url list
+        for target in targets:
+            urls.append('https://www.amazon.com/' + target[1] + target[2])
+
+        # Remove duplicates from the url list
+        for url in urls:
+            if url not in result:
+                result.append(url)
+
+        return result
+
 
 searcher = GooglePicSearcher()
-
-print(searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\326992_1.jpg"))
+content = searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\326992_1.jpg")
+print(searcher.scrape_target(content))
