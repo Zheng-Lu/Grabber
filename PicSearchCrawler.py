@@ -1,7 +1,11 @@
 import os
+import random
 import re
+import time
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
+from itertools import cycle
 from multiprocessing import Pool, cpu_count
 
 from selenium import webdriver
@@ -9,6 +13,34 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+start = time.time()
+
+
+user_agent_list = [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
+]
+
+# Pick a random user agent
+user_agent = random.choice(user_agent_list)
+
+headers = {
+    'user-agent': user_agent,
+    'referer': 'https://www.google.com/',
+}
+
+f = open(r"C:\Users\Lenovo\Desktop\ProxiesPool\ProxiesPool(socks4).txt", 'r', encoding='utf-8')
+proxies = f.read().split("\n")
+
+for i in range(len(proxies)):
+    proxies[i] = 'socks4://' + proxies[i]
+
+proxies_pool = cycle(proxies)
+proxy = next(proxies_pool)  # Get a proxy from the pool
 
 
 def run():
@@ -53,6 +85,13 @@ def partition(ls, size):
             result.append(ls[num_per_list * i:num_per_list * (i + 1)])
         result.append(ls[num_per_list * (size - 1):])
     return result
+
+def getPrice(url):
+    r = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
+    soup = BeautifulSoup(r.content, features="lxml")
+    price = soup.find('span', attrs={'id': 'priceblock_ourprice'})
+
+    return price
 
 
 class GooglePicSearcher:
@@ -101,7 +140,6 @@ class GooglePicSearcher:
 
         return self.driver.page_source
 
-    # regex of target url :
     def scrape_target(self, content):
         urls = []
         result = []
@@ -122,5 +160,14 @@ class GooglePicSearcher:
 
 
 searcher = GooglePicSearcher()
-content = searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\326992_1.jpg")
-print(searcher.scrape_target(content))
+content = searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\327058_1.jpg")
+print(content)
+urls = searcher.scrape_target(content)
+prices = []
+for url in urls:
+    prices.append(getPrice(url))
+print(prices)
+
+
+end = time.time()
+print('Time taken: ' + str(round(end - start, 2)) + 's')

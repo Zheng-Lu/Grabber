@@ -1,5 +1,3 @@
-import json
-
 import requests
 import time
 import pandas as pd
@@ -49,7 +47,7 @@ headers = {
 
 # response = requests.get('https://www.amazon.com/', headers=headers)
 
-f = open(r"C:\Users\Lenovo\Desktop\ProxiesPool\ProxiesPool(socks4).txt",'r', encoding='utf-8')
+f = open(r"C:\Users\Lenovo\Desktop\ProxiesPool\ProxiesPool(socks4).txt", 'r', encoding='utf-8')
 proxies = f.read().split("\n")
 
 for i in range(len(proxies)):
@@ -57,34 +55,40 @@ for i in range(len(proxies)):
     # print(proxies[i])
 
 proxies_pool = cycle(proxies)
-proxy = next(proxies_pool) # Get a proxy from the pool
+proxy = next(proxies_pool)  # Get a proxy from the pool
 
 """
 Proxies Testing 
 """
 
-# url = 'https://httpbin.org/ip'
-# for i in range(len(proxies)):
-#
-#     print("Request #%d" % i)
-#     try:
-#         response = requests.get(url, proxies={"http": proxy, "https": proxy})
-#         print(response.json())
-#     except:
-#         print("Skipping. Connnection error")
+"""
+url = 'https://httpbin.org/ip'
+for i in range(len(proxies)):
+    prox = next(proxies_pool)
+    print("Request #%d" % i)
+    try:
+        response = requests.get(url, proxies={"http": prox, "https": prox})
+        print(response.json())
+    except:
+        print("Skipping. Connnection error")
+"""
+
 
 """
 Headers Testing 
 """
 
-# url = 'https://httpbin.org/headers'
-# for i in range(0, 4):
-#
-#     # Make the request
-#     response = requests.get(url, headers=headers)
-#     print("Request #%d\nUser-Agent Sent:%s\n\nHeaders Recevied by HTTPBin:" % (i, user_agent))
-#     print(response.json())
-#     print("-------------------")
+"""
+url = 'https://httpbin.org/headers'
+for i in range(0, 4):
+
+    # Make the request
+    response = requests.get(url, headers=headers)
+    print("Request #%d\nUser-Agent Sent:%s\n\nHeaders Recevied by HTTPBin:" % (i, user_agent))
+    print(response.json())
+    print("-------------------")
+"""
+
 
 def search_amazon(item):
     driver = webdriver.Chrome(ChromeDriverManager().install())
@@ -118,6 +122,7 @@ def search_amazon(item):
             filehandle.write(f'{result_page}\n')
 
     print("------------------------DONE------------------------")
+
 
 def getProducts(url):
     s = requests.Session()
@@ -162,7 +167,7 @@ def getProducts(url):
         urls = soup.findAll('a', attrs={'class': 'a-link-normal a-text-normal'})
         url = []
         for u in urls:
-            url.append('https://www.amazon.com'+u.get('href'))
+            url.append('https://www.amazon.com' + u.get('href'))
     except AttributeError:
         url.append('N/A')
 
@@ -175,7 +180,18 @@ def getProducts(url):
 
     return data
 
+
+def getPrice(url):
+    time.sleep(3)
+    r = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
+    soup = BeautifulSoup(r.content, features="lxml")
+    price = soup.find('span', attrs={'id': 'priceblock_ourprice'})
+
+    return price
+
+
 e = Extractor.from_yaml_file('selector.yml')
+
 
 def download_product(url):
     print(f"Downloading {url}")
@@ -184,27 +200,27 @@ def download_product(url):
         if "To discuss automated access to Amazon data please contact" in response.text:
             print(f"Page {url} was blocked by Amazon. Please try using better proxies\n")
         else:
-            print(f"Page {url} must have been blocked by Amazon as the status code was {response.status_code}" )
+            print(f"Page {url} must have been blocked by Amazon as the status code was {response.status_code}")
         return None
 
     return e.extract(response.text)
 
+
 def pass_captcha(url):
     response = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
-    if response.status_code == 200:
-        if "Type the characters you see in this image:" in response.text:
-            driver = webdriver.Chrome()
-            driver.maximize_window()
-            driver.get(url)
-            link = driver.find_element_by_tag_name('img').get_attribute('src')
-            print(link)
-            captcha = AmazonCaptcha.fromlink(link)
-            solution = captcha.solve()
-            print(solution)
-            driver.find_element_by_css_selector('input.a-span12').send_keys(solution)
-            driver.find_element_by_css_selector("button.a-button-text").click()
+
+    if "Type the characters you see in this image:" in response.text:
+        driver = webdriver.Chrome()
+        driver.maximize_window()
+        driver.get(url)
+        link = driver.find_element_by_tag_name('img').get_attribute('src')
+        captcha = AmazonCaptcha.fromlink(link)
+        solution = captcha.solve()
+        driver.find_element_by_css_selector('input.a-span12').send_keys(solution)
+        driver.find_element_by_css_selector("button.a-button-text").click()
     else:
-        print("Page Not Found")
+        print("There is no captcha in this page")
+
 
 # URL = 'https://www.amazon.com/s?k=100+Watt+Portable+Solar+Panels%2C+Foldable+Solar+Panel+Charger%2C+Compatible+with+Solar+Power+Stations%2FPhones%2Flaptops%2FTablet+Computers%2C+Suitable+for+Family+Camping%2FTravel%2FHiking+Various+Outdoor+Activities&ref=nb_sb_noss'
 # df = pd.DataFrame.from_dict(getProducts(URL))
@@ -218,7 +234,7 @@ def pass_captcha(url):
 #         # print(data)
 #         print(getProducts(url))
 
-pass_captcha('https://www.amazon.com/errors/validateCaptcha')
+#
 
 
 end = time.time()

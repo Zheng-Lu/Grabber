@@ -62,6 +62,40 @@ urls = []
 # for row in df.iterrows():
 #     urls.append(row[1].to_string().replace("url    ",''))
 
+def search_amazon(item):
+    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver.maximize_window()
+    driver.get('https://www.amazon.com')
+    driver.find_element_by_id('twotabsearchtextbox').send_keys(item)
+    driver.find_element_by_id("nav-search-submit-text").click()
+
+    driver.implicitly_wait(5)
+
+    try:
+        num_page = driver.find_element_by_xpath('//*[@class="a-pagination"]/li[6]')
+    except NoSuchElementException:
+        num_page = driver.find_element_by_class_name('a-last').click()
+
+    driver.implicitly_wait(3)
+
+    url_list = []
+
+    for i in range(int(num_page.text)):
+        page_ = i + 1
+        url_list.append(driver.current_url)
+        driver.implicitly_wait(4)
+        driver.find_element_by_class_name('a-last').click()
+        print("Page " + str(page_) + " grabbed")
+
+    driver.quit()
+
+    with open(r'C:\Users\Lenovo\Desktop\html\search_results_urls.txt', 'w') as filehandle:
+        for result_page in url_list:
+            filehandle.write('%s\n' % result_page)
+
+    print("---DONE---")
+
+
 def getCookies(url):
     browser.get(url)
     cookies = browser.get_cookies()
@@ -156,6 +190,7 @@ target_url = 'https://www.aliexpress.com/wholesale?catId=0&initiative_id=AS_2021
              '+graphics+card '
 print(getCookies(target_url))
 print(getProductBySearch(target_url))
+print(search_amazon('cpu'))
 
 # print(scrapeData(html))
 
