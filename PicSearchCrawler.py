@@ -1,13 +1,18 @@
+from PIL import Image
+from io import BytesIO
+from CompareImageHistogram import compare_img_hist
 import os
 import random
+from time import strftime
+from time import gmtime
 import re
 import time
 import pandas as pd
 import requests
+from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 from itertools import cycle
 from multiprocessing import Pool, cpu_count
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -86,12 +91,68 @@ def partition(ls, size):
         result.append(ls[num_per_list * (size - 1):])
     return result
 
-def getPrice(url):
-    r = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
-    soup = BeautifulSoup(r.content, features="lxml")
-    price = soup.find('span', attrs={'id': 'priceblock_ourprice'})
+#
+# def getPrice(url):
+#     r = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
+#     soup = BeautifulSoup(r.content, features="lxml")
+#     price = soup.find('span', attrs={'id': 'priceblock_ourprice'})
+#     return price
 
-    return price
+def getImageByUrl():
+    # 根据图片url 获取图片对象
+    html = requests.get(url, verify=False)
+    image = Image.open(BytesIO(html.content))
+    return image
+
+def getProduct(url):
+    s = HTMLSession()
+    r = s.get(url)
+    r.html.render(sleep=2)
+    try:
+
+        product = {
+            'title': r.html.xpath('//*[@id="productTitle"]', first=True).text,
+            'price': r.html.xpath('//*[@id="price_inside_buybox"]', first=True).text,
+            'image': r.html.xpath('//*[@id="price_inside_buybox"]', first=True).text,
+            'Product URL': url,
+            'ASIN': url.split('/dp/')[1]
+        }
+        # print(product)
+    except:
+        product = {
+            'title': r.html.xpath('//*[@id="productTitle"]', first=True).text,
+            'price': 'item unavailable',
+            'Product URL': url,
+            'ASIN': url.split('/dp/')[1]
+        }
+        # print(product)
+    return product
+
+
+def scrape_target(content):
+    urls = []
+    result = []
+    targets = re.findall(
+        '(?:https?://)?(?:[a-zA-Z0-9\-]+\.)?(?:amazon|amzn){1}\.(?P<tld>[a-zA-Z\.]{2,})\/(gp/(?:product|offer-listing|customer-media/product-gallery)/|exec/obidos/tg/detail/-/|o/ASIN/|dp/|(?:[A-Za-z0-9\-]+)/dp/)?(?P<ASIN>[0-9A-Za-z]{10})',
+        content)
+
+    # Reform the targets into url list
+    for target in targets:
+        urls.append('https://www.amazon.com/' + target[1] + target[2])
+
+    # Remove duplicates from the url list
+    for url in urls:
+        if url not in result:
+            result.append(url)
+
+    return result
+
+
+def isSamePic(img1, img2):
+    if compare_img_hist(img1, img2) > 0.8:
+        return True
+    else:
+        return False
 
 
 class GooglePicSearcher:
@@ -115,13 +176,10 @@ class GooglePicSearcher:
     def upload_img_file(self, file):
         # Choose upload image
         upload_img_option = self.driver.find_element_by_css_selector(
-            "a.iOGqzf.H4qWMc.aXIg1b[href='about\:invalid\#zClosurez'][onclick='google\.qb\.ti\(true\)\;return\ false']")
+            "a.iOGqzf.H4qWMc.aXIg1b[onclick='google\.qb\.ti\(true\)\;return\ false']")
         upload_img_option.click()
 
         # Upload file from given file path
-        condition_3 = EC.visibility_of_element_located(
-            (By.ID, 'awyMjb'))
-        WebDriverWait(self.driver, timeout=10, poll_frequency=0.5).until(condition_3)
         input_ = self.driver.find_element_by_css_selector("input#awyMjb")
         input_.send_keys(file)
 
@@ -140,34 +198,33 @@ class GooglePicSearcher:
 
         return self.driver.page_source
 
-    def scrape_target(self, content):
-        urls = []
-        result = []
-        targets = re.findall(
-            '(?:https?://)?(?:[a-zA-Z0-9\-]+\.)?(?:amazon|amzn){1}\.(?P<tld>[a-zA-Z\.]{2,})\/(gp/(?:product|offer-listing|customer-media/product-gallery)/|exec/obidos/tg/detail/-/|o/ASIN/|dp/|(?:[A-Za-z0-9\-]+)/dp/)?(?P<ASIN>[0-9A-Za-z]{10})',
-            content)
-
-        # Reform the targets into url list
-        for target in targets:
-            urls.append('https://www.amazon.com/' + target[1] + target[2])
-
-        # Remove duplicates from the url list
-        for url in urls:
-            if url not in result:
-                result.append(url)
-
-        return result
-
 
 searcher = GooglePicSearcher()
-content = searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\327058_1.jpg")
-print(content)
-urls = searcher.scrape_target(content)
-prices = []
-for url in urls:
-    prices.append(getPrice(url))
-print(prices)
+#
+# dict = {}
+# folder = r"C:\Users\Lenovo\Desktop\pics"
+# for filename in os.listdir(folder):
+#     print(filename)
+#     content = searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\{}".format(filename))
+#     urls = searcher.scrape_target(content)
+#     dict[filename] = urls
+#     searcher.__init__()
+#     print(dict)
 
+if __name__ == '__main__':
+    content = searcher.upload_img_file(r"C:\Users\Lenovo\Desktop\pics\326992_2.jpg")
+    # content = searcher.upload_img_url("https://ec-m2c-cn.oss-cn-shenzhen.aliyuncs.com/yilian/images/2021/04/28/20210428112952_Goroo.jpg")
+    urls = scrape_target(content)
+    print(urls)
+    product_details = []
+    for url in urls:
+        product_details.append(getProduct(url))
+    print(product_details)
 
+""""""""
 end = time.time()
-print('Time taken: ' + str(round(end - start, 2)) + 's')
+seconds = round(end - start, 2)
+if seconds < 60:
+    print('Time taken: ' + str(seconds) + 's')
+else:
+    print('Time taken: ' + strftime("%H:%M:%S", gmtime(seconds)))
